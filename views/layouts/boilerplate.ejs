@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Page Title -->
+    <%- block('title').toString() %>
+
+    <!-- Bootstrap CSS -->
+    <!-- <link rel="stylesheet" href="/css/main.css"> -->
+    
+    <!-- Custom CSS -->
+    <%- block('stylesheets').toString() %>
+</head>
+<body class="d-flex flex-column vh-100">
+    <!-- Navbar -->
+    <%- // include('../partials/navbar') %>
+
+    <!-- Flash messages -->
+    <%- include('../partials/flash') %>
+
+    <!-- Content -->
+    <%- body %>
+
+    <!-- Footer -->
+    <%- // include('../partials/footer') %>
+
+    <!-- Bootstrap JS -->
+    <!-- <script src="/js/bootstrap.bundle.min.js"></script> -->
+    
+    <!-- Custom JS -->
+    <%- block('scripts').toString() %>
+</body>
+</html>
