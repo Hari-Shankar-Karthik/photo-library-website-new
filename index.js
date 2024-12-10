@@ -14,6 +14,9 @@ const User = require("./models/user");
 // Routes
 const authRoutes = require("./routes/auth");
 
+// Serve static files
+app.use(express.static(path.join(__dirname, "public")));
+
 // EJS setup
 app.engine("ejs", engine);
 app.set("view engine", "ejs");
