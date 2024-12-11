@@ -25,7 +25,7 @@ auth.loginForm = (req, res) => {
 
 auth.login = (req, res) => {
   req.flash("success", "Welcome back!");
-  res.redirect("/home");
+  res.redirect(`/users/${req.user._id}`);
 };
 
 auth.logout = (req, res) => {
