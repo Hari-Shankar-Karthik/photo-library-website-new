@@ -77,5 +77,53 @@ def process_image():
         return jsonify({"error": str(e)}), 500
 
 
+# Thresholds
+PROB_THRESHOLD = 0.10
+LOGIT_THRESHOLD = 0.01
+
+
+@app.route("/predict", methods=["POST"])
+def predict():
+    try:
+        # Retrieve the search query and tensor file from request
+        search_query = request.form.get("search_query")
+        if not search_query:
+            return jsonify({"error": "No search query provided"}), 400
+
+        if "old_tensor" not in request.files:
+            return jsonify({"error": "No tensor file provided"}), 400
+
+        old_tensor_file = request.files["old_tensor"]
+        old_tensor = torch.load(io.BytesIO(old_tensor_file.read()), map_location=device)
+
+        # Tokenize the search query
+        text = clip.tokenize([search_query]).to(device)
+
+        # Compute logits
+        with torch.inference_mode():
+            logits_per_image, logits_per_text = model(old_tensor, text)
+
+        # Apply softmax to get probabilities
+        probs = (
+            torch.nn.functional.softmax(logits_per_image, dim=0).squeeze().cpu().numpy()
+        )
+
+        # Filter images where probability is above the threshold
+        mask = probs >= PROB_THRESHOLD
+
+        # If no images meet the threshold, return an empty list
+        if not np.any(mask):
+            return jsonify({"indices": []})
+
+        # Get indices of images with high probabilities
+        top_indices = np.where(mask)[0].tolist()
+
+        return jsonify({"indices": top_indices})
+
+    except Exception as e:
+        # Handle any errors
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)

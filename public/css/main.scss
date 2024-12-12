@@ -2,6 +2,17 @@
 // Option A: Include all of Bootstrap
 
 // Include any default variable overrides here (though functions won't be available)
+// Override Bootstrap variables for dark theme colors
+$primary: #1e90ff; // Dodger Blue
+$secondary: #ff6347; // Tomato
+$background-color: #181818; // Dark Charcoal Gray
+$surface-color: #2c2c2c; // Darker Gray
+$text-color: #e0e0e0; // Light Gray
+$text-color-secondary: #b0b0b0; // Medium Gray
+$link-color: #1e90ff; // Dodger Blue for links
+$accent-color: #32cd32; // Lime Green
+$danger-color: #ff4500; // Orange Red for danger/warnings
+$border-color: #333333; // Dark Gray borders
 
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
