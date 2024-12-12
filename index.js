@@ -52,7 +52,7 @@ passport.deserializeUser(User.deserializeUser());
 let gfs; // Declare gfs outside mongoose connection
 
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect("mongodb://localhost:27017/photo-library")
   .then((connection) => {
     console.log("Connected to MongoDB");
     const db = connection.connection.db;

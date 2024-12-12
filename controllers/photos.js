@@ -66,10 +66,14 @@ module.exports.create = async (req, res) => {
     });
 
     // Send the data to the Python API
-    const apiResponse = await axios.post(process.env.PYTHON_API_URL, formData, {
-      headers: { ...formData.getHeaders() },
-      responseType: "arraybuffer",
-    });
+    const apiResponse = await axios.post(
+      "http://localhost:5000/process",
+      formData,
+      {
+        headers: { ...formData.getHeaders() },
+        responseType: "arraybuffer",
+      }
+    );
     console.log("API response status:", apiResponse.statusText);
 
     const newEmbeddingsFile = Buffer.from(apiResponse.data);
