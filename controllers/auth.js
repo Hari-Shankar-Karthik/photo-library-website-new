@@ -11,10 +11,22 @@ auth.register = async (req, res) => {
     const { username, email, password } = req.body;
     const user = new User({ username, email });
     await User.register(user, password);
-    req.flash("success", "Registered successfully! Please login.");
-    res.redirect("/login");
+    req.login(user, (err) => {
+      if (err) {
+        return next(err);
+      }
+      req.flash("success", "Welcome to Yelp Camp!");
+      res.redirect(`/users/${user._id}`);
+    });
   } catch (err) {
-    req.flash("error", err.message);
+    if (err.code === 11000 && err.keyPattern && err.keyPattern.email) {
+      req.flash(
+        "error",
+        `The email "${req.body.email}" is already in use. Please use a different email.`
+      );
+    } else {
+      req.flash("error", err.message);
+    }
     res.redirect("/register");
   }
 };

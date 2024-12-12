@@ -6,3 +6,5 @@ GET /users/:userID -> Render the particular user's photos
 POST /users/:userID -> Add a photo to this user
 DELETE /users/:userID/photos/:photoID -> Delete the photo
 DELETE /users/:userID -> Delete the user and all their photos
+
+flask run --host=0.0.0.0 --port=5000

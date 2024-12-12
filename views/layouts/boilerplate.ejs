@@ -5,31 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Page Title -->
-    <%- block('title').toString() %>
+    <%- block("title").toString() %>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="/css/main.css" />
 
     <!-- Custom CSS -->
-    <%- block('stylesheets').toString() %>
+    <%- block("stylesheets").toString() %>
   </head>
   <body class="d-flex flex-column vh-100">
     <!-- Navbar -->
-    <!-- <%- // include('../partials/navbar') %> -->
+    <!-- <%- // include("../partials/navbar") %> -->
 
     <!-- Flash messages -->
-    <%- include('../partials/flash') %>
+    <%- include("../partials/flash") %>
 
     <!-- Content -->
     <%- body %>
 
     <!-- Footer -->
-    <!-- <%- // include('../partials/footer') %> -->
+    <!-- <%- // include("../partials/footer") %> -->
 
     <!-- Bootstrap JS -->
     <script src="/js/bootstrap.bundle.min.js"></script>
 
     <!-- Custom JS -->
-    <%- block('scripts').toString() %>
+    <%- block("scripts").toString() %>
   </body>
 </html>

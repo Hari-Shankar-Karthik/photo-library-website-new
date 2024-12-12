@@ -1,12 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Home Page</title>
-  </head>
-  <body>
-    Welcome, <%= user.username %>
-    <a href="/users/<%= user._id %>/new">Add image</a>
-  </body>
-</html>
+<%- block("title").append("<title>Home Page</title>") %>
+<!-- Index page of all the images of a user  -->
+<%- layout("layouts/boilerplate") %>
+<div>
+  Welcome, <%= user.username %>
+  <a href="/users/<%= user._id %>/new">Add image</a>
+</div>
+<div>
+  <% if (user.images.length > 0) { %>
+  <div>
+    <h2>User Images</h2>
+    <% for(image of user.images) { %>
+    <img src="<%= image %>" />
+    <% } %>
+  </div>
+  <% } else { %>
+  <p>No images uploaded yet.</p>
+  <% } %>
+</div>
