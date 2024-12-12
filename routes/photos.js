@@ -11,6 +11,6 @@ router
 
 router.get("/:userID/new", isLoggedIn, photos.new);
 
-// router.get("/:userID/results", isLoggedIn, photos.results);
+router.get("/:userID/results", isLoggedIn, photos.results);
 
 module.exports = router;

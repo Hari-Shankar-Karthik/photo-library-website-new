@@ -1,14 +1,34 @@
 <%- block("title").append("<title>New Image</title>") %>
 <!-- Form to upload a new image -->
 <%- layout("layouts/boilerplate") %>
-<form
-  id="uploadForm"
-  enctype="multipart/form-data"
-  action="/users/<%= user._id %>"
-  method="POST"
->
-  <h2>Upload an Image</h2>
-  <label for="image">Select an image file:</label>
-  <input type="file" id="image" name="image" accept="image/*" required />
-  <button type="submit">Upload</button>
-</form>
+
+<div class="container my-5">
+  <div class="text-center mb-4">
+    <h2>Upload an Image</h2>
+  </div>
+
+  <form
+    id="uploadForm"
+    enctype="multipart/form-data"
+    action="/users/<%= user._id %>"
+    method="POST"
+    class="border p-4 rounded shadow-sm"
+  >
+    <div class="mb-3">
+      <label for="image" class="form-label">Select an image file:</label>
+      <input
+        type="file"
+        id="image"
+        name="image"
+        class="form-control"
+        accept="image/*"
+        required
+      />
+    </div>
+    <div class="text-center">
+      <button type="submit" class="btn btn-primary w-50 w-md-auto">
+        Upload
+      </button>
+    </div>
+  </form>
+</div>

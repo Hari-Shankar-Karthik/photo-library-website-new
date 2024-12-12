@@ -41,9 +41,13 @@ auth.login = (req, res) => {
 };
 
 auth.logout = (req, res) => {
-  req.logout();
-  req.flash("success", "Logged out successfully!");
-  res.redirect("/login");
+  req.logout((err) => {
+    if (err) {
+      return next(err);
+    }
+    req.flash("success", "Goodbye!");
+    res.redirect("/login");
+  });
 };
 
 module.exports = auth;

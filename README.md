@@ -8,3 +8,5 @@ DELETE /users/:userID/photos/:photoID -> Delete the photo
 DELETE /users/:userID -> Delete the user and all their photos
 
 flask run --host=0.0.0.0 --port=5000
+
+Doesn't work when the user spams hot trash into the seach bar

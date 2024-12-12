@@ -3,7 +3,7 @@ const FormData = require("form-data");
 const Grid = require("gridfs-stream");
 const mongoose = require("mongoose");
 const User = require("../models/user");
-const File = require("../models/file");
+const File = require("../models/file"); // I don't know why this is needed but the create API breaks without it
 
 // Initialize GridFS stream
 const conn = mongoose.createConnection(
@@ -32,7 +32,7 @@ module.exports.create = async (req, res) => {
   const imageUrl = req.file.path;
 
   try {
-    console.log("Image URL:", imageUrl);
+    // console.log("Image URL:", imageUrl);
 
     // Fetch the image from Cloudinary for further processing
     const imageResponse = await axios.get(imageUrl, {
@@ -43,7 +43,7 @@ module.exports.create = async (req, res) => {
     // Fetch the user's record from the database
     const user = await User.findById(userID).populate("embeddingsFile");
     const previousFileId = user.embeddingsFile?._id; // GridFS ID of the old file, if it exists
-    console.log("previousFileId:", previousFileId);
+    // console.log("previousFileId:", previousFileId);
 
     const formData = new FormData();
     if (previousFileId) {
@@ -77,7 +77,7 @@ module.exports.create = async (req, res) => {
     // Delete the old .pth file from GridFS
     try {
       if (previousFileId) {
-        console.log("Attempting to delete old .pth file, ID:", previousFileId);
+        // console.log("Attempting to delete old .pth file, ID:", previousFileId);
 
         // Use await directly with the delete operation
         await bucket.delete(previousFileId);
@@ -110,7 +110,7 @@ module.exports.create = async (req, res) => {
 
       if (file.length > 0) {
         const gridFile = file[0];
-        console.log("GridFS File ID:", gridFile._id);
+        // console.log("GridFS File ID:", gridFile._id);
 
         // Update the user's database record with the new file reference
 
@@ -138,5 +138,67 @@ async function streamToBuffer(stream) {
     stream.on("data", (chunk) => chunks.push(chunk));
     stream.on("end", () => resolve(Buffer.concat(chunks)));
     stream.on("error", (err) => reject(err));
+  });
+}
+
+module.exports.results = async (req, res) => {
+  const { search_query } = req.query;
+  const { userID } = req.params;
+
+  try {
+    // Retrieve the user's embeddings file from the database
+    const user = await User.findById(userID).populate("embeddingsFile");
+    const embeddingsFile = user.embeddingsFile;
+    // console.log("User found: ", user._id);
+
+    if (!embeddingsFile) {
+      return res.status(400).json({ error: "No embeddings file found" });
+    }
+
+    // Create a FormData object
+    const formData = new FormData();
+
+    // Fetch the user's embeddings file (i.e., the .pth file)
+    const embeddingsFileBuffer = await getFileBuffer(embeddingsFile);
+
+    // Append the embeddings file and search query to the form data
+    formData.append("old_tensor", embeddingsFileBuffer, {
+      filename: "previous_tensor.pth",
+    });
+    formData.append("search_query", search_query);
+
+    // Make a POST request to the Python Flask API
+    const apiResponse = await axios.post(
+      "http://localhost:5000/predict",
+      formData,
+      {
+        headers: formData.getHeaders(),
+      }
+    );
+    console.log("apiResponse status:", apiResponse.statusText);
+
+    // Check for errors in the response
+    if (apiResponse.status !== 200) {
+      return res.status(500).json({ error: "Error calling prediction API" });
+    }
+
+    // Return the images at the indices from the response
+    const { indices } = apiResponse.data;
+    const images = indices.map((index) => user.images[index]);
+    res.render("photos/results", { user, images, search_query });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to fetch prediction" });
+  }
+};
+
+// Helper function to fetch file buffer from GridFS
+async function getFileBuffer(file) {
+  const readStream = bucket.openDownloadStream(file._id);
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    readStream.on("data", (chunk) => chunks.push(chunk));
+    readStream.on("end", () => resolve(Buffer.concat(chunks)));
+    readStream.on("error", (err) => reject(err));
   });
 }

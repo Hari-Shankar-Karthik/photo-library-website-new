@@ -4,6 +4,10 @@ from PIL import Image
 from pathlib import Path
 from flask import Flask, request, jsonify, send_file
 import io
+import numpy as np
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -79,7 +83,7 @@ def process_image():
 
 # Thresholds
 PROB_THRESHOLD = 0.10
-LOGIT_THRESHOLD = 0.01
+TEMPERATURE = 1.0
 
 
 @app.route("/predict", methods=["POST"])
@@ -94,7 +98,9 @@ def predict():
             return jsonify({"error": "No tensor file provided"}), 400
 
         old_tensor_file = request.files["old_tensor"]
-        old_tensor = torch.load(io.BytesIO(old_tensor_file.read()), map_location=device)
+        old_tensor = torch.load(
+            io.BytesIO(old_tensor_file.read()), map_location=device, weights_only=True
+        )
 
         # Tokenize the search query
         text = clip.tokenize([search_query]).to(device)
@@ -102,11 +108,16 @@ def predict():
         # Compute logits
         with torch.inference_mode():
             logits_per_image, logits_per_text = model(old_tensor, text)
+            logging.debug(f"logits_per_image: {logits_per_image}")
 
         # Apply softmax to get probabilities
         probs = (
-            torch.nn.functional.softmax(logits_per_image, dim=0).squeeze().cpu().numpy()
+            torch.nn.functional.softmax(logits_per_image / TEMPERATURE, dim=0)
+            .squeeze()
+            .cpu()
+            .numpy()
         )
+        logging.debug(f"probs: {probs}")
 
         # Filter images where probability is above the threshold
         mask = probs >= PROB_THRESHOLD
