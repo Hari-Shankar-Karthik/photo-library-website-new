@@ -1,10 +1,10 @@
 <%- block("title").append("<title>New Image</title>") %>
-<!-- Form to upload a new image -->
+<!-- Form to upload new images -->
 <%- layout("layouts/boilerplate") %>
 
 <div class="container my-5">
   <div class="text-center mb-4">
-    <h2>Upload an Image</h2>
+    <h2>Upload Images</h2>
   </div>
 
   <form
@@ -15,14 +15,15 @@
     class="border p-4 rounded shadow-sm"
   >
     <div class="mb-3">
-      <label for="image" class="form-label">Select an image file:</label>
+      <label for="images" class="form-label">Select image file(s):</label>
       <input
         type="file"
-        id="image"
-        name="image"
+        id="images"
+        name="images"
         class="form-control"
         accept="image/*"
         required
+        multiple
       />
     </div>
     <div class="text-center">
