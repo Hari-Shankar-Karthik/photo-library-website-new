@@ -1,6 +1,19 @@
-const User = require("../models/user");
 const axios = require("axios");
 const FormData = require("form-data");
+const Grid = require("gridfs-stream");
+const mongoose = require("mongoose");
+const User = require("../models/user");
+const File = require("../models/file");
+
+// Initialize GridFS stream
+const conn = mongoose.createConnection(
+  "mongodb://localhost:27017/photo-library"
+);
+let bucket; // Declare a bucket for GridFS
+conn.once("open", () => {
+  // Initialize GridFSBucket for writing/uploading
+  bucket = new mongoose.mongo.GridFSBucket(conn.db, { bucketName: "fs" });
+});
 
 module.exports.index = async (req, res) => {
   const { userID } = req.params;
@@ -15,34 +28,36 @@ module.exports.new = async (req, res) => {
 };
 
 module.exports.create = async (req, res) => {
-  const { gfs } = req;
   const { userID } = req.params;
   const imageUrl = req.file.path;
 
   try {
     console.log("Image URL:", imageUrl);
 
-    // Fetch the user's existing .pth file
-    const user = await User.findById(userID);
-    const previousFileId = user.embeddingsFile; // GridFS ID of the old file, if it exists
-
     // Fetch the image from Cloudinary for further processing
     const imageResponse = await axios.get(imageUrl, {
       responseType: "arraybuffer",
     });
+    console.log("Image response status: ", imageResponse.statusText);
 
-    console.log("Image response: ", imageResponse);
+    // Fetch the user's record from the database
+    const user = await User.findById(userID).populate("embeddingsFile");
+    const previousFileId = user.embeddingsFile?._id; // GridFS ID of the old file, if it exists
+    console.log("previousFileId:", previousFileId);
 
     const formData = new FormData();
     if (previousFileId) {
       // Retrieve the old .pth file from GridFS
-      const oldFileStream = gfs.openDownloadStream(previousFileId);
+      const oldFileStream = bucket.openDownloadStream(previousFileId);
       const oldFileBuffer = await streamToBuffer(oldFileStream); // Convert stream to buffer
 
       // Add the old .pth file to the form data
-      formData.append("old_file", oldFileBuffer, {
+      formData.append("old_tensor", oldFileBuffer, {
         filename: "previous_tensor.pth",
       });
+      console.log("Stored tensor found, ID:", previousFileId);
+    } else {
+      console.log("No stored tensor found");
     }
 
     // Add the new image to the form data
@@ -55,13 +70,29 @@ module.exports.create = async (req, res) => {
       headers: { ...formData.getHeaders() },
       responseType: "arraybuffer",
     });
-
-    console.log("API response:", apiResponse);
+    console.log("API response status:", apiResponse.statusText);
 
     const newEmbeddingsFile = Buffer.from(apiResponse.data);
 
+    // Delete the old .pth file from GridFS
+    try {
+      if (previousFileId) {
+        console.log("Attempting to delete old .pth file, ID:", previousFileId);
+
+        // Use await directly with the delete operation
+        await bucket.delete(previousFileId);
+
+        console.log("Old .pth file deleted successfully");
+      } else {
+        console.log("No old .pth file to delete");
+      }
+    } catch (deleteError) {
+      console.error("Failed to delete old file:", deleteError);
+    }
+
     // Upload the new .pth file to GridFS
-    const uploadStream = gfs.openUploadStream("embeddings_tensor.pth", {
+    const uniqueFilename = `embeddings_tensor_${Date.now()}.pth`;
+    const uploadStream = bucket.openUploadStream(uniqueFilename, {
       metadata: { userID },
     });
     uploadStream.write(newEmbeddingsFile);
@@ -72,30 +103,21 @@ module.exports.create = async (req, res) => {
       console.log("New file uploaded");
 
       // Retrieve the uploaded file's metadata
-      const file = await gfs
-        .find({ filename: "embeddings_tensor.pth" })
+      const file = await conn.db
+        .collection("fs.files")
+        .find({ filename: uniqueFilename })
         .toArray();
+
       if (file.length > 0) {
         const gridFile = file[0];
         console.log("GridFS File ID:", gridFile._id);
 
         // Update the user's database record with the new file reference
+
         user.embeddingsFile = gridFile._id;
         user.images.push(imageUrl); // Add the image URL
         await user.save();
-
-        console.log("User updated:", user);
-
-        // Delete the old file from GridFS if it exists
-        if (previousFileId) {
-          gfs.delete(previousFileId, (err) => {
-            if (err) {
-              console.error("Error deleting old .pth file:", err);
-            } else {
-              console.log("Old .pth file deleted successfully");
-            }
-          });
-        }
+        console.log("User record updated");
 
         // Redirect to the user's photos page
         res.redirect(`/users/${userID}`);
@@ -105,9 +127,7 @@ module.exports.create = async (req, res) => {
     });
   } catch (error) {
     console.error("Error:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while processing the request" });
+    res.status(500).json({ error: "Failed to process request" });
   }
 };
 

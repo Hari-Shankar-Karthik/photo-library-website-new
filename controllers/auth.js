@@ -15,7 +15,7 @@ auth.register = async (req, res) => {
       if (err) {
         return next(err);
       }
-      req.flash("success", "Welcome to Yelp Camp!");
+      req.flash("success", "Welcome to PhotoLibrary!");
       res.redirect(`/users/${user._id}`);
     });
   } catch (err) {

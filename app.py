@@ -31,18 +31,33 @@ def process_image():
             .to(device, dtype=torch.float)
         )
 
-        # Check if a .pth file is provided
+        # Check if a .pth file is provided (old tensor)
         old_tensor = None
         if "old_tensor" in request.files:
             old_tensor_file = request.files["old_tensor"]
             old_tensor = torch.load(
-                io.BytesIO(old_tensor_file.read()), weights_only=True
+                io.BytesIO(old_tensor_file.read()),
+                map_location=device,
+                weights_only=True,
             )
 
-        # Update or create the tensor
-        if old_tensor is not None:
+            # Check if the tensor loaded correctly
+            if old_tensor is None:
+                return jsonify({"error": "Failed to load the previous tensor"}), 400
+
+            # Ensure that the tensor and new image have compatible dimensions
+            if old_tensor.dim() != image.dim():
+                return (
+                    jsonify(
+                        {"error": "Tensor dimensions do not match image dimensions"}
+                    ),
+                    400,
+                )
+
+            # Concatenate old tensor and new image tensor along the batch dimension
             images = torch.cat((old_tensor, image), dim=0)
         else:
+            # If no old tensor is provided, just use the new image
             images = image
 
         # Save the updated tensor to a BytesIO object
@@ -58,6 +73,7 @@ def process_image():
         )
 
     except Exception as e:
+        # Catch and return any errors that occur during processing
         return jsonify({"error": str(e)}), 500
 
 

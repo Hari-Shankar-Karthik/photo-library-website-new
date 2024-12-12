@@ -62,14 +62,7 @@ mongoose
 
 // Routes
 app.use("/", authRoutes);
-app.use(
-  "/users",
-  (req, res, next) => {
-    req.gfs = gfs;
-    next();
-  },
-  photoRoutes
-);
+app.use("/users", photoRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
