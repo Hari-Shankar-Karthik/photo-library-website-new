@@ -19,21 +19,26 @@ model, preprocess = clip.load("ViT-B/32", device=device)
 
 
 @app.route("/process", methods=["POST"])
-def process_image():
+def process_images():
     try:
-        # Check if a file is provided
-        if "file" not in request.files:
-            return jsonify({"error": "No image file provided"}), 400
+        # Check if images are provided
+        if "images" not in request.files:
+            return jsonify({"error": "No image files provided"}), 400
 
-        # Retrieve the image file
-        image_file = request.files["file"]
+        # Retrieve the image files
+        image_files = request.files.getlist("images")
+        images = []
 
-        # Load and preprocess the image
-        image = (
-            preprocess(Image.open(image_file))
-            .unsqueeze(0)
-            .to(device, dtype=torch.float)
-        )
+        for image_file in image_files:
+            image = (
+                preprocess(Image.open(image_file))
+                .unsqueeze(0)
+                .to(device, dtype=torch.float)
+            )
+            images.append(image)
+
+        # Concatenate all images
+        images = torch.cat(images, dim=0)
 
         # Check if a .pth file is provided (old tensor)
         old_tensor = None
@@ -45,12 +50,10 @@ def process_image():
                 weights_only=True,
             )
 
-            # Check if the tensor loaded correctly
             if old_tensor is None:
                 return jsonify({"error": "Failed to load the previous tensor"}), 400
 
-            # Ensure that the tensor and new image have compatible dimensions
-            if old_tensor.dim() != image.dim():
+            if old_tensor.dim() != images.dim():
                 return (
                     jsonify(
                         {"error": "Tensor dimensions do not match image dimensions"}
@@ -58,11 +61,7 @@ def process_image():
                     400,
                 )
 
-            # Concatenate old tensor and new image tensor along the batch dimension
-            images = torch.cat((old_tensor, image), dim=0)
-        else:
-            # If no old tensor is provided, just use the new image
-            images = image
+            images = torch.cat((old_tensor, images), dim=0)
 
         # Save the updated tensor to a BytesIO object
         tensor_io = io.BytesIO()
@@ -75,9 +74,7 @@ def process_image():
             download_name="updated_images_tensor.pth",
             mimetype="application/octet-stream",
         )
-
     except Exception as e:
-        # Catch and return any errors that occur during processing
         return jsonify({"error": str(e)}), 500
 
 
