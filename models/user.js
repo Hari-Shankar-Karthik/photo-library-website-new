@@ -2,22 +2,17 @@ const mongoose = require("mongoose");
 const passportLocalMongoose = require("passport-local-mongoose");
 
 const userSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  images: [
-    {
-      type: String, // URLs or paths to the images
-      required: false,
+    email: {
+        type: String,
+        required: true,
+        unique: true,
     },
-  ],
-  embeddingsFile: {
-    type: mongoose.Schema.Types.ObjectId, // Reference to the GridFS file ID
-    ref: "fs.files", // Reference to the GridFS collection
-    required: false,
-  },
+    images: [
+        {
+            type: String, // URLs to the images
+            required: false,
+        },
+    ],
 });
 
 // Adds the username and password fields, with the necessary validations

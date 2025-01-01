@@ -1,41 +1,43 @@
 <nav class="navbar navbar-expand-lg bg-body-tertiary">
-  <div class="container-fluid">
-    <% if (user) { %>
-    <a class="navbar-brand" href="/users/<%= user._id %>">PhotoLibrary</a>
-    <% } else {%>
-    <a class="navbar-brand" href="/login">PhotoLibrary</a>
-    <% } %>
-    <button
-      class="navbar-toggler"
-      type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#navbarSupportedContent"
-      aria-controls="navbarSupportedContent"
-      aria-expanded="false"
-      aria-label="Toggle navigation"
-    >
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <% if (user) { %>
-      <form
-        class="d-flex me-auto"
-        role="search"
-        action="/users/<%= user._id %>/results"
-      >
-        <input
-          class="form-control me-2"
-          type="search"
-          placeholder="Search"
-          aria-label="Search"
-          name="search_query"
-        />
-        <button class="btn btn-outline-success" type="submit">Search</button>
-      </form>
-      <form action="/logout" method="post">
-        <button class="btn btn-danger">Logout</button>
-      </form>
-      <% } %>
+    <div class="container-fluid">
+        <% if (user) { %>
+        <a class="navbar-brand" href="/users/<%= user._id %>">PhotoLibrary</a>
+        <% } else {%>
+        <a class="navbar-brand" href="/login">PhotoLibrary</a>
+        <% } %>
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+        >
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <% if (user) { %>
+            <form
+                class="d-flex me-auto"
+                role="search"
+                action="/users/<%= user._id %>/results"
+            >
+                <input
+                    class="form-control me-2"
+                    type="search"
+                    placeholder="Search"
+                    aria-label="Search"
+                    name="search_query"
+                />
+                <button class="btn btn-outline-success" type="submit">
+                    Search
+                </button>
+            </form>
+            <form action="/logout" method="post">
+                <button class="btn btn-danger">Logout</button>
+            </form>
+            <% } %>
+        </div>
     </div>
-  </div>
 </nav>

@@ -27,18 +27,18 @@ app.set("views", path.join(__dirname, "views"));
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(
-  session({
-    secret: "dangthisisnotsecure",
-    resave: false,
-    saveUninitialized: false,
-  })
+    session({
+        secret: "dangthisisnotsecure",
+        resave: false,
+        saveUninitialized: false,
+    })
 );
 app.use(flash());
 app.use((req, res, next) => {
-  res.locals.success = req.flash("success");
-  res.locals.error = req.flash("error");
-  res.locals.user = req.user;
-  next();
+    res.locals.success = req.flash("success");
+    res.locals.error = req.flash("error");
+    res.locals.user = req.user;
+    next();
 });
 app.use(passport.initialize());
 app.use(passport.session());
@@ -49,16 +49,10 @@ passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 // Connect to MongoDB
-let gfs; // Declare gfs outside mongoose connection
-
 mongoose
-  .connect("mongodb://localhost:27017/photo-library")
-  .then((connection) => {
-    console.log("Connected to MongoDB");
-    const db = connection.connection.db;
-    gfs = new mongoose.mongo.GridFSBucket(db, { bucketName: "fs" });
-  })
-  .catch((err) => console.error("MongoDB connection error:", err));
+    .connect("mongodb://localhost:27017/photo-library")
+    .then(console.log("Connected to MongoDB"))
+    .catch((err) => console.error("MongoDB connection error:", err));
 
 // Routes
 app.use("/", authRoutes);
@@ -67,5 +61,5 @@ app.use("/users", photoRoutes);
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });

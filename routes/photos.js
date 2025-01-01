@@ -5,9 +5,9 @@ const photos = require("../controllers/photos");
 const { isLoggedIn } = require("../middleware");
 
 router
-  .route("/:userID")
-  .get(isLoggedIn, photos.index)
-  .post(isLoggedIn, upload.single("image"), photos.create);
+    .route("/:userID")
+    .get(isLoggedIn, photos.index)
+    .post(isLoggedIn, upload.array("images", 10), photos.upload);
 
 router.get("/:userID/new", isLoggedIn, photos.new);
 
