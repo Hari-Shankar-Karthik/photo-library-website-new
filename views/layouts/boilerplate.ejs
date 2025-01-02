@@ -1,35 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-        <!-- Page Title -->
-        <%- block("title").toString() %>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-        <!-- Bootstrap CSS -->
-        <link rel="stylesheet" href="/css/main.css" />
+  <!-- Page Title -->
+  <%- block("title").toString() %>
 
-        <!-- Custom CSS -->
-        <%- block("stylesheets").toString() %>
-    </head>
-    <body class="d-flex flex-column vh-100">
-        <!-- Navbar -->
-        <%- include("../partials/navbar") %>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/bootstrap-icons.css" />
 
-        <!-- Flash messages -->
-        <%- include("../partials/flash") %>
+  <!-- Custom CSS -->
+  <%- block("stylesheets").toString() %>
+</head>
 
-        <!-- Content -->
-        <%- body %>
+<body class="d-flex flex-column vh-100">
+  <!-- Navbar -->
+  <%- include("../partials/navbar") %>
 
-        <!-- Footer -->
-        <!-- <%- // include("../partials/footer") %> -->
+  <!-- Flash messages -->
+  <%- include("../partials/flash") %>
 
-        <!-- Bootstrap JS -->
-        <script src="/js/bootstrap.bundle.min.js"></script>
+  <!-- Content -->
+  <%- body %>
 
-        <!-- Custom JS -->
-        <%- block("scripts").toString() %>
-    </body>
+  <!-- Footer -->
+  <!-- <%- // include("../partials/footer") %> -->
+
+  <!-- Bootstrap JS -->
+  <script src="/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Custom JS -->
+  <%- block("scripts").toString() %>
+</body>
+
 </html>

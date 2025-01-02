@@ -9,8 +9,8 @@ const userSchema = new mongoose.Schema({
     },
     images: [
         {
-            type: String, // URLs to the images
-            required: false,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Image",
         },
     ],
 });

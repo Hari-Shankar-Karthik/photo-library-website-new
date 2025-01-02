@@ -7,6 +7,7 @@ const session = require("express-session");
 const passport = require("passport");
 const localStrategy = require("passport-local");
 const flash = require("connect-flash");
+const methodOverride = require("method-override");
 require("dotenv").config();
 
 // Models
@@ -42,6 +43,7 @@ app.use((req, res, next) => {
 });
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(methodOverride("_method"));
 
 // Setup passport to use the User model
 passport.use(new localStrategy(User.authenticate()));
@@ -52,7 +54,7 @@ passport.deserializeUser(User.deserializeUser());
 mongoose
     .connect("mongodb://localhost:27017/photo-library")
     .then(console.log("Connected to MongoDB"))
-    .catch((err) => console.error("MongoDB connection error:", err));
+    .catch((err) => console.error(err));
 
 // Routes
 app.use("/", authRoutes);

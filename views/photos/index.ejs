@@ -1,35 +1,32 @@
 <%- block("title").append("<title>Home Page</title>") %>
-<!--  -->
+<%- block("stylesheets").append('<link rel="stylesheet" href="/css/index.css" />') %>
 <%- layout("layouts/boilerplate") %>
 
 <div class="container my-5">
-    <div class="text-center mb-4">
-        <h1>Welcome, <%= user.username %>!</h1>
-        <a href="/users/<%= user._id %>/new" class="btn btn-primary"
-            >Add Image</a
-        >
-    </div>
+  <div class="text-center mb-4">
+    <h1>Welcome, <%= user.username %>!</h1>
+    <a href="/users/<%= user._id %>/new" class="btn btn-primary">Add Image</a>
+  </div>
 
-    <% if (user.images.length > 0) { %>
-    <div>
-        <h2 class="text-center">Your Photos</h2>
-        <div class="row mt-4">
-            <% for (image of user.images) { %>
-            <div class="col-6 col-md-4 col-lg-3 mb-4">
-                <div class="card">
-                    <img
-                        src="<%= image %>"
-                        class="card-img-top"
-                        alt="User Image"
-                    />
-                </div>
-            </div>
-            <% } %>
+  <% if (user.images.length > 0) { %>
+  <div>
+    <h2 class="text-center">Your Photos</h2>
+    <div class="row mt-4">
+      <% for (image of user.images) { %>
+      <div class="col-6 col-md-4 col-lg-3 mb-4">
+        <div class="card position-relative">
+          <img src="<%= image.url %>" class="card-img-top" alt="User Image" />
+          <form action="/users/<%= user._id %>/images/<%= image._id %>?_method=DELETE" method="post">
+            <button class="btn btn-danger delete-btn" aria-label="Delete image"><i class="bi bi-trash"></i></button>
+          </form>
         </div>
+      </div>
+      <% } %>
     </div>
-    <% } else { %>
-    <div class="text-center mt-5">
-        <p class="text-muted">No images uploaded yet.</p>
-    </div>
-    <% } %>
+  </div>
+  <% } else { %>
+  <div class="text-center mt-5">
+    <p class="text-muted">No images uploaded yet.</p>
+  </div>
+  <% } %>
 </div>

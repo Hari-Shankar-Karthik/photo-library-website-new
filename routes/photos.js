@@ -11,6 +11,8 @@ router
 
 router.get("/:userID/new", isLoggedIn, photos.new);
 
+router.delete("/:userID/images/:imageID", isLoggedIn, photos.delete);
+
 router.get("/:userID/results", isLoggedIn, photos.results);
 
 module.exports = router;
