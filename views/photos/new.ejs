@@ -1,16 +1,17 @@
 <%- block("title").append("<title>New Image</title>") %>
-<!-- Form to upload a new image -->
+<%- block("scripts").append('<script src="/js/form-validation.js"></script>') %>
 <%- layout("layouts/boilerplate") %>
 
 <div class="container my-5">
   <div class="text-center mb-4">
     <h2>Upload an Image</h2>
   </div>
-  <form id="uploadForm" enctype="multipart/form-data" action="/users/<%= user._id %>" method="POST" class="border p-4 rounded shadow-sm">
+  <form id="uploadForm" enctype="multipart/form-data" action="/users/<%= user._id %>" method="POST" class="border p-4 rounded shadow-sm needs-validation" novalidate>
     <!-- File upload block -->
     <div class="mb-3">
-      <label for="image" class="form-label">Select an image file:</label>
-      <input type="file" id="images" name="images" class="form-control" accept="image/*" multiple />
+      <label for="images" class="form-label">Select up to 10 image files:</label>
+      <input type="file" id="images" name="images" class="form-control" accept="image/*" multiple required />
+      <div class="invalid-feedback">You can upload a maximum of 10 files.</div>
     </div>
 
     <div class="text-center my-3">
@@ -20,7 +21,8 @@
     <!-- URL input block -->
     <div class="mb-3">
       <label for="imageURL" class="form-label">Enter image URL:</label>
-      <input type="url" id="imageURL" name="imageURL" class="form-control" placeholder="https://example.com/image.jpg" />
+      <input type="url" id="imageURL" name="imageURL" class="form-control" placeholder="https://example.com/image.jpg" required />
+      <div class="invalid-feedback">You cannot fill both fields. Please choose one.</div>
     </div>
 
     <!-- Submit button -->

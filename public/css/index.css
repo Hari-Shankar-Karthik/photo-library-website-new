@@ -1,29 +1,25 @@
-.card {
-    position: relative;
-}
-
 .delete-btn {
-    display: none;
     position: absolute;
     top: 5px;
     right: 5px;
-    background-color: rgba(255, 0, 0, 0.7);
+    background-color: rgba(220, 53, 69, 0.7);
     color: white;
     border: none;
     border-radius: 50%;
     width: 30px;
     height: 30px;
-    font-size: 16px;
-    line-height: 30px;
-    text-align: center;
+    font-size: 14px;
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     z-index: 1;
 }
 
 .card:hover .delete-btn {
-    display: block;
+    display: flex; /* Show on hover */
 }
 
 .delete-btn:hover {
-    background-color: rgba(255, 0, 0, 0.9);
+    background-color: rgba(255, 0, 0, 1);
 }

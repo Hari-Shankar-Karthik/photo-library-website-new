@@ -5,7 +5,6 @@ const Image = require("../models/image");
 module.exports.index = async (req, res) => {
     const { userID } = req.params;
     const user = await User.findById(userID).populate("images");
-    console.log(user);
     res.render("photos/index", { user });
 };
 
@@ -31,11 +30,9 @@ module.exports.upload = async (req, res) => {
     } else {
         // Image files have been uploaded
         const imageURLs = req.files.map((file) => file.path);
-        console.log(imageURLs);
         // Create new image documents
         const images = imageURLs.map((url) => new Image({ url }));
         await Image.insertMany(images);
-        console.log(images);
         // Save the image URLs to the user's images array
         user.images.push(...images);
     }
