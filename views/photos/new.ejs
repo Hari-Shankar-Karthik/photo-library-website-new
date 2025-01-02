@@ -1,5 +1,5 @@
 <%- block("title").append("<title>New Image</title>") %>
-<%- block("scripts").append('<script src="/js/form-validation.js"></script>') %>
+<%- block("scripts").append('<script src="/js/new.js"></script>') %>
 <%- layout("layouts/boilerplate") %>
 
 <div class="container my-5">
@@ -23,6 +23,13 @@
       <label for="imageURL" class="form-label">Enter image URL:</label>
       <input type="url" id="imageURL" name="imageURL" class="form-control" placeholder="https://example.com/image.jpg" required />
       <div class="invalid-feedback">You cannot fill both fields. Please choose one.</div>
+    </div>
+
+    <!-- Loading spinner (hidden initially) -->
+    <div id="loading-container" style="display: none;" class="mb-3 text-center">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
     </div>
 
     <!-- Submit button -->
