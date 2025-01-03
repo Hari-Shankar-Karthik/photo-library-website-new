@@ -1,140 +1,76 @@
-import torch
-import clip
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from PIL import Image
-from pathlib import Path
-from flask import Flask, request, jsonify, send_file
-import io
-import numpy as np
-import logging
+import torch
+import os
+import pickle
+import requests
+from transformers import CLIPModel, CLIPProcessor
 
-logging.basicConfig(level=logging.DEBUG)
+# Initialize FastAPI
+app = FastAPI()
 
-# Initialize the Flask app
-app = Flask(__name__)
-
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-# Load the CLIP model and preprocessing
-model, preprocess = clip.load("ViT-B/32", device=device)
+# Initialize CLIP model and processor
+model_id = "openai/clip-vit-base-patch32"
+processor = CLIPProcessor.from_pretrained(model_id)
+model = CLIPModel.from_pretrained(model_id)
 
 
-@app.route("/process", methods=["POST"])
-def process_image():
+# Pydantic model for input
+class ImageURL(BaseModel):
+    url: str
+
+
+# Endpoint to process image and generate embedding
+@app.post("/process")
+async def process_image(input_data: ImageURL):
+    # Temporary paths for image and embedding storage
+    temp_image_path = "temp_image.jpg"
+    embedding_path = "embeddings.pkl"
+
     try:
-        # Check if a file is provided
-        if "file" not in request.files:
-            return jsonify({"error": "No image file provided"}), 400
+        # Download the image from the URL
+        response = requests.get(input_data.url)
+        if response.status_code != 200:
+            raise HTTPException(status_code=400, detail="Failed to download the image.")
 
-        # Retrieve the image file
-        image_file = request.files["file"]
+        with open(temp_image_path, "wb") as f:
+            f.write(response.content)
 
-        # Load and preprocess the image
-        image = (
-            preprocess(Image.open(image_file))
-            .unsqueeze(0)
-            .to(device, dtype=torch.float)
-        )
+        # Load the image
+        image = Image.open(temp_image_path)
 
-        # Check if a .pth file is provided (old tensor)
-        old_tensor = None
-        if "old_tensor" in request.files:
-            old_tensor_file = request.files["old_tensor"]
-            old_tensor = torch.load(
-                io.BytesIO(old_tensor_file.read()),
-                map_location=device,
-                weights_only=True,
-            )
+        # Preprocess the image
+        inputs = processor(images=image, return_tensors="pt", padding=True)
 
-            # Check if the tensor loaded correctly
-            if old_tensor is None:
-                return jsonify({"error": "Failed to load the previous tensor"}), 400
-
-            # Ensure that the tensor and new image have compatible dimensions
-            if old_tensor.dim() != image.dim():
-                return (
-                    jsonify(
-                        {"error": "Tensor dimensions do not match image dimensions"}
-                    ),
-                    400,
-                )
-
-            # Concatenate old tensor and new image tensor along the batch dimension
-            images = torch.cat((old_tensor, image), dim=0)
-        else:
-            # If no old tensor is provided, just use the new image
-            images = image
-
-        # Save the updated tensor to a BytesIO object
-        tensor_io = io.BytesIO()
-        torch.save(images, tensor_io)
-        tensor_io.seek(0)
-
-        return send_file(
-            tensor_io,
-            as_attachment=True,
-            download_name="updated_images_tensor.pth",
-            mimetype="application/octet-stream",
-        )
-
-    except Exception as e:
-        # Catch and return any errors that occur during processing
-        return jsonify({"error": str(e)}), 500
-
-
-# Thresholds
-PROB_THRESHOLD = 0.10
-TEMPERATURE = 1.0
-
-
-@app.route("/predict", methods=["POST"])
-def predict():
-    try:
-        # Retrieve the search query and tensor file from request
-        search_query = request.form.get("search_query")
-        if not search_query:
-            return jsonify({"error": "No search query provided"}), 400
-
-        if "old_tensor" not in request.files:
-            return jsonify({"error": "No tensor file provided"}), 400
-
-        old_tensor_file = request.files["old_tensor"]
-        old_tensor = torch.load(
-            io.BytesIO(old_tensor_file.read()), map_location=device, weights_only=True
-        )
-
-        # Tokenize the search query
-        text = clip.tokenize([search_query]).to(device)
-
-        # Compute logits
+        # Compute the embedding
         with torch.inference_mode():
-            logits_per_image, logits_per_text = model(old_tensor, text)
-            logging.debug(f"logits_per_image: {logits_per_image}")
+            image_embedding = model.get_image_features(**inputs).squeeze()
 
-        # Apply softmax to get probabilities
-        probs = (
-            torch.nn.functional.softmax(logits_per_image / TEMPERATURE, dim=0)
-            .squeeze()
-            .cpu()
-            .numpy()
+        # Load or initialize the embedding store
+        if os.path.exists(embedding_path):
+            with open(embedding_path, "rb") as f:
+                embedding_store = pickle.load(f)
+        else:
+            embedding_store = {}
+
+        # Update the store
+        embedding_store[input_data.url] = image_embedding
+        with open(embedding_path, "wb") as f:
+            pickle.dump(embedding_store, f)
+
+        # Return the .pkl file as response
+        return FileResponse(
+            embedding_path,
+            media_type="application/octet-stream",
+            filename="embeddings.pkl",
         )
-        logging.debug(f"probs: {probs}")
-
-        # Filter images where probability is above the threshold
-        mask = probs >= PROB_THRESHOLD
-
-        # If no images meet the threshold, return an empty list
-        if not np.any(mask):
-            return jsonify({"indices": []})
-
-        # Get indices of images with high probabilities
-        top_indices = np.where(mask)[0].tolist()
-
-        return jsonify({"indices": top_indices})
 
     except Exception as e:
-        # Handle any errors
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
-
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    finally:
+        # Clean up temporary files
+        if os.path.exists(temp_image_path):
+            os.remove(temp_image_path)

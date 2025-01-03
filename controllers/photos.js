@@ -1,6 +1,7 @@
-const mongoose = require("mongoose");
+const axios = require("axios");
 const User = require("../models/user");
 const Image = require("../models/image");
+const Embedding = require("../models/embedding");
 
 module.exports.index = async (req, res) => {
     const { userID } = req.params;
@@ -14,6 +15,37 @@ module.exports.new = async (req, res) => {
     res.render("photos/new", { user });
 };
 
+const embedImage = async (imageURL) => {
+    try {
+        // Make a POST request to the embeddings API
+        const response = await axios({
+            method: "post",
+            url: process.env.EMBEDDINGS_API,
+            responseType: "arraybuffer",
+            data: { url: imageURL },
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (response.status !== 200) {
+            throw new Error(
+                `Failed to fetch image embedding: ${response.statusText}`
+            );
+        }
+
+        // Create and save the embedding to the database
+        const embedding = new Embedding({ data: response.data });
+        await embedding.save();
+
+        // Create and save the corresponding image document
+        const image = new Image({ url: imageURL, embedding: embedding._id });
+        await image.save();
+
+        return image;
+    } catch (err) {
+        console.error(err);
+    }
+};
+
 module.exports.upload = async (req, res) => {
     const { imageURL } = req.body;
 
@@ -22,19 +54,17 @@ module.exports.upload = async (req, res) => {
     const user = await User.findById(userID).populate("images");
 
     if (imageURL) {
-        // Create a new image document
-        const image = new Image({ url: imageURL });
-        await image.save();
+        // Get the embedding of the image
+        const image = await embedImage(imageURL);
         // Save the image URL to the user's images array
         user.images.push(image);
     } else {
-        // Image files have been uploaded
-        const imageURLs = req.files.map((file) => file.path);
-        // Create new image documents
-        const images = imageURLs.map((url) => new Image({ url }));
-        await Image.insertMany(images);
-        // Save the image URLs to the user's images array
-        user.images.push(...images);
+        for (const file of req.files) {
+            // Get the embedding of the image
+            const image = await embedImage(file.path);
+            // Save the image URL to the user's images array
+            user.images.push(image);
+        }
     }
 
     // Save the user's images array to the database
