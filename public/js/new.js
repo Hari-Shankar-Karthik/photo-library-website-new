@@ -6,8 +6,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Form Validation
     form.addEventListener("submit", function (event) {
-        let isValid = true;
-
         // Validate only one field is filled (either file or URL)
         if (
             (imagesInput.files.length > 0 && urlInput.value.trim() !== "") ||
@@ -17,15 +15,6 @@ document.addEventListener("DOMContentLoaded", function () {
             imagesInput.classList.add("is-invalid");
             urlInput.nextElementSibling.style.display = "block"; // Show invalid feedback
             imagesInput.nextElementSibling.style.display = "block"; // Show invalid feedback
-            isValid = false;
-        } else {
-            urlInput.classList.remove("is-invalid");
-            imagesInput.classList.remove("is-invalid");
-            urlInput.nextElementSibling.style.display = "none"; // Hide invalid feedback
-            imagesInput.nextElementSibling.style.display = "none"; // Hide invalid feedback
-        }
-
-        if (!isValid) {
             event.preventDefault();
             event.stopPropagation();
             return; // Prevent form submission if invalid
@@ -51,34 +40,18 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Real-time validation for file input
-    imagesInput.addEventListener("change", function () {
-        // Check if both fields are filled
-        if (imagesInput.files.length > 0 && urlInput.value.trim() !== "") {
-            urlInput.classList.add("is-invalid");
-            imagesInput.classList.add("is-invalid");
-            urlInput.nextElementSibling.style.display = "block"; // Show invalid feedback
-            imagesInput.nextElementSibling.style.display = "block"; // Show invalid feedback
-        } else {
-            urlInput.classList.remove("is-invalid");
-            imagesInput.classList.remove("is-invalid");
-            urlInput.nextElementSibling.style.display = "none"; // Hide invalid feedback
-            imagesInput.nextElementSibling.style.display = "none"; // Hide invalid feedback
-        }
-    });
-
-    // Real-time validation for URL input
-    urlInput.addEventListener("input", function () {
-        // Check if both fields are filled
-        if (imagesInput.files.length > 0 && urlInput.value.trim() !== "") {
-            urlInput.classList.add("is-invalid");
-            imagesInput.classList.add("is-invalid");
-            urlInput.nextElementSibling.style.display = "block"; // Show invalid feedback
-            imagesInput.nextElementSibling.style.display = "block"; // Show invalid feedback
-        } else {
-            urlInput.classList.remove("is-invalid");
-            imagesInput.classList.remove("is-invalid");
-            urlInput.nextElementSibling.style.display = "none"; // Hide invalid feedback
-            imagesInput.nextElementSibling.style.display = "none"; // Hide invalid feedback
-        }
-    });
+    for (element of [imagesInput, urlInput]) {
+        element.addEventListener("change", function () {
+            // Check if both fields are filled
+            if (imagesInput.files.length > 0 && urlInput.value.trim() !== "") {
+                urlInput.classList.add("is-invalid");
+                imagesInput.classList.add("is-invalid");
+                urlInput.nextElementSibling.style.display = "block"; // Show invalid feedback
+            } else {
+                urlInput.classList.remove("is-invalid");
+                imagesInput.classList.remove("is-invalid");
+                urlInput.nextElementSibling.style.display = "none"; // Hide invalid feedback
+            }
+        });
+    }
 });

@@ -5,6 +5,10 @@ const imageSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    embedding: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Embedding",
+    },
 });
 
 module.exports = mongoose.model("Image", imageSchema);
