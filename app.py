@@ -74,3 +74,26 @@ async def process_image(input_data: ImageURL):
         # Clean up temporary files
         if os.path.exists(temp_image_path):
             os.remove(temp_image_path)
+
+
+# Updated Pydantic model to accept both `search_query` and `embeddings`
+class EmbeddingData(BaseModel):
+    search_query: str
+    embeddings: list
+
+
+@app.post("/search")
+async def search_images(input_data: EmbeddingData):
+    try:
+        # Extract the search_query and embeddings from the input data
+        search_query = input_data.search_query
+        embeddings = input_data.embeddings
+
+        # For now, return a dummy response
+        return {
+            "search_query": search_query,
+            "length": len(embeddings),
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -101,8 +101,26 @@ module.exports.results = async (req, res) => {
 
     try {
         // Retrieve the user's embeddings file from the database
-        const user = await User.findById(userID);
-        // TODO: Make API call with search_query and user.images
+        const user = await User.findById(userID).populate("images");
+
+        // Extract the embeddings from the user's images
+        const embeddings = user.images.map((image) => image.embedding.data);
+
+        // Make a POST request to send the embeddings to the search API
+        const response = await axios({
+            method: "post",
+            url: process.env.SEARCH_API, // the URL of the FastAPI endpoint
+            data: { search_query, embeddings },
+            headers: { "Content-Type": "application/json" },
+        });
+
+        // Handle the response
+        if (response.status === 200) {
+            console.log("Response:", response.data);
+            res.redirect(`/users/${userID}`);
+        } else {
+            throw new Error("Failed to fetch search results");
+        }
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to fetch prediction" });
