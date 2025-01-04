@@ -1,7 +1,6 @@
 const axios = require("axios");
 const User = require("../models/user");
 const Image = require("../models/image");
-const Embedding = require("../models/embedding");
 
 module.exports.index = async (req, res) => {
     const { userID } = req.params;
@@ -15,114 +14,70 @@ module.exports.new = async (req, res) => {
     res.render("photos/new", { user });
 };
 
-const embedImage = async (imageURL) => {
-    try {
-        // Make a POST request to the embeddings API
-        const response = await axios({
-            method: "post",
-            url: process.env.EMBEDDINGS_API,
-            responseType: "arraybuffer",
-            data: { url: imageURL },
-            headers: { "Content-Type": "application/json" },
-        });
-
-        if (response.status !== 200) {
-            throw new Error(
-                `Failed to fetch image embedding: ${response.statusText}`
-            );
-        }
-
-        // Create and save the embedding to the database
-        const embedding = new Embedding({ data: response.data });
-        await embedding.save();
-
-        // Create and save the corresponding image document
-        const image = new Image({ url: imageURL, embedding: embedding._id });
-        await image.save();
-
-        return image;
-    } catch (err) {
-        console.error(err);
-    }
-};
-
 module.exports.upload = async (req, res) => {
+    const { userID } = req.params;
     const { imageURL } = req.body;
 
-    // Retrieve the user document from the database
-    const { userID } = req.params;
-    const user = await User.findById(userID).populate("images");
+    try {
+        // Send a POST request to get the embedding
+        const response = await axios.post(process.env.EMBEDDINGS_API, {
+            imageURL,
+        });
+        const embedding = response.data.embedding;
 
-    if (imageURL) {
-        // Get the embedding of the image
-        const image = await embedImage(imageURL);
-        // Save the image URL to the user's images array
-        user.images.push(image);
-    } else {
-        for (const file of req.files) {
-            // Get the embedding of the image
-            const image = await embedImage(file.path);
-            // Save the image URL to the user's images array
-            user.images.push(image);
+        if (!embedding || embedding.length !== 512) {
+            return res
+                .status(500)
+                .json({ message: "Invalid embedding generated" });
         }
+
+        // Create a new image document
+        const image = new Image({ imageURL, embedding });
+        await image.save();
+
+        // Find the user by their ID and push the image to their images array
+        const user = await User.findById(userID);
+        if (!user) {
+            throw new Error("User not found");
+        }
+        user.images.push(image._id);
+        await user.save();
+
+        // Redirect to the user's photos page
+        req.flash("success", "Image uploaded successfully");
+        res.redirect(`/users/${userID}`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Error generating embedding" });
     }
-
-    // Save the user's images array to the database
-    await user.save();
-
-    // Flash success message
-    req.flash("success", "Image upload successful!");
-
-    // Redirect to the user's profile page
-    res.redirect(`/users/${userID}`);
-};
-
-module.exports.delete = async (req, res) => {
-    const { userID, imageID } = req.params;
-
-    // Remove the image from the images collection
-    await Image.findByIdAndDelete(imageID);
-
-    // Remove the image from the user's images array
-    await User.findByIdAndUpdate(userID, {
-        $pull: { images: imageID },
-    });
-
-    // Flash success message
-    req.flash("success", "Image deleted successfully");
-
-    // Redirect to the user's profile page
-    res.redirect(`/users/${userID}`);
 };
 
 module.exports.results = async (req, res) => {
-    const { search_query } = req.query;
     const { userID } = req.params;
+    const { searchQuery } = req.body;
 
     try {
-        // Retrieve the user's embeddings file from the database
+        // Find the user and populate their images
         const user = await User.findById(userID).populate("images");
+        if (!user) {
+            throw new Error("User not found");
+        }
 
         // Extract the embeddings from the user's images
-        const embeddings = user.images.map((image) => image.embedding.data);
+        const embeddings = user.images.map((image) => image.embedding);
 
-        // Make a POST request to send the embeddings to the search API
-        const response = await axios({
-            method: "post",
-            url: process.env.SEARCH_API, // the URL of the FastAPI endpoint
-            data: { search_query, embeddings },
-            headers: { "Content-Type": "application/json" },
+        // Send a POST request to the API to get the results
+        const response = await axios.post(process.env.SEARCH_API, {
+            searchQuery,
+            embeddings,
         });
 
-        // Handle the response
-        if (response.status === 200) {
-            console.log("Response:", response.data);
-            res.redirect(`/users/${userID}`);
-        } else {
-            throw new Error("Failed to fetch search results");
-        }
+        // Dummy handling of the response
+        const result = response.data.result;
+        console.log(`result: ${result}`);
+        res.redirect(`/users/${userID}`);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Failed to fetch prediction" });
+        console.error(`Error generating results: ${err}`);
+        res.status(500).json({ message: "Error generating results" });
     }
 };

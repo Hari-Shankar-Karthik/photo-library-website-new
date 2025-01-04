@@ -1,99 +1,91 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
-from PIL import Image
-import torch
-import os
-import pickle
+from flask import Flask, request, jsonify
 import requests
-from transformers import CLIPModel, CLIPProcessor
-
-# Initialize FastAPI
-app = FastAPI()
-
-# Initialize CLIP model and processor
-model_id = "openai/clip-vit-base-patch32"
-processor = CLIPProcessor.from_pretrained(model_id)
-model = CLIPModel.from_pretrained(model_id)
+from PIL import Image
+from io import BytesIO
+from transformers import CLIPProcessor, CLIPModel
+import torch
+from torch.nn.functional import cosine_similarity
+import matplotlib.pyplot as plt
 
 
-# Pydantic model for input
-class ImageURL(BaseModel):
-    url: str
+def create_app():
+    # Set up device: Use GPU if available, otherwise fallback to CPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Load the model and processor
+    model_id = "openai/clip-vit-base-patch32"
+    processor = CLIPProcessor.from_pretrained(model_id)
+    model = CLIPModel.from_pretrained(model_id).to(device)
 
-# Endpoint to process image and generate embedding
-@app.post("/process")
-async def process_image(input_data: ImageURL):
-    # Temporary paths for image and embedding storage
-    temp_image_path = "temp_image.jpg"
-    embedding_path = "embeddings.pkl"
+    app = Flask(__name__)
 
-    try:
-        # Download the image from the URL
-        response = requests.get(input_data.url)
+    @app.route("/process", methods=["POST"])
+    def get_embedding():
+        # Get the URL from the request body
+        data = request.json
+        image_url = data.get("imageURL")
+
+        if not image_url:
+            return jsonify({"error": "Image URL is required"}), 400
+
+        response = requests.get(image_url)
+
         if response.status_code != 200:
-            raise HTTPException(status_code=400, detail="Failed to download the image.")
-
-        with open(temp_image_path, "wb") as f:
-            f.write(response.content)
+            return jsonify({"error": "Failed to download image"}), 400
 
         # Load the image
-        image = Image.open(temp_image_path)
+        image = Image.open(BytesIO(response.content))
 
-        # Preprocess the image
+        # Process the image
         inputs = processor(images=image, return_tensors="pt", padding=True)
+        inputs = {key: value.to(device) for key, value in inputs.items()}
 
         # Compute the embedding
         with torch.inference_mode():
             image_embedding = model.get_image_features(**inputs).squeeze()
 
-        # Load or initialize the embedding store
-        if os.path.exists(embedding_path):
-            with open(embedding_path, "rb") as f:
-                embedding_store = pickle.load(f)
-        else:
-            embedding_store = {}
+        # Return the embedding as a list
+        print(image_embedding)
+        return jsonify({"embedding": image_embedding.tolist()})
 
-        # Update the store
-        embedding_store[input_data.url] = image_embedding
-        with open(embedding_path, "wb") as f:
-            pickle.dump(embedding_store, f)
+    TEMPERATURE = 0.01
+    THRESHOLD = 0.15
 
-        # Return the .pkl file as response
-        return FileResponse(
-            embedding_path,
-            media_type="application/octet-stream",
-            filename="embeddings.pkl",
-        )
+    @app.route("/search", methods=["POST"])
+    def search_images():
+        # Get the search query and the embeddings from the request
+        data = request.json
+        search_query = data.get("searchQuery")
+        embeddings = data.get("embeddings")
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        if not search_query or not embeddings:
+            return jsonify({"error": "Search query and embeddings are required"}), 400
 
-    finally:
-        # Clean up temporary files
-        if os.path.exists(temp_image_path):
-            os.remove(temp_image_path)
+        # Compute the text embedding
+        inputs = processor(text=[search_query], return_tensors="pt", padding=True)
+        inputs = {key: value.to(device) for key, value in inputs.items()}
+
+        with torch.inference_mode():
+            text_embedding = model.get_text_features(**inputs).squeeze()
+
+        # Convert embeddings to PyTorch tensors
+        image_embeddings = torch.tensor(embeddings, device=device)
+
+        # Calculate cosine similarity
+        similarities = cosine_similarity(
+            text_embedding.unsqueeze(0), image_embeddings
+        ).squeeze()
+
+        # Apply softmax (with temperature) and filter results based on threshold
+        probabilities = (similarities / TEMPERATURE).softmax(dim=0)
+        print(probabilities)
+        result = torch.where(probabilities >= THRESHOLD)[0].tolist()
+
+        return jsonify({"result": result})
+
+    return app
 
 
-# Updated Pydantic model to accept both `search_query` and `embeddings`
-class EmbeddingData(BaseModel):
-    search_query: str
-    embeddings: list
-
-
-@app.post("/search")
-async def search_images(input_data: EmbeddingData):
-    try:
-        # Extract the search_query and embeddings from the input data
-        search_query = input_data.search_query
-        embeddings = input_data.embeddings
-
-        # For now, return a dummy response
-        return {
-            "search_query": search_query,
-            "length": len(embeddings),
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+if __name__ == "__main__":
+    app = create_app()
+    app.run(debug=True)

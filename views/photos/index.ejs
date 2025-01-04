@@ -15,7 +15,7 @@
       <% for (image of user.images) { %>
       <div class="col-12 col-md-6 col-lg-4 mb-4">
         <div class="card position-relative">
-          <img src="<%= image.url %>" class="card-img-top" alt="User Image" loading="lazy" />
+          <img src="<%= image.imageURL %>" class="card-img-top" alt="User Image" loading="lazy" />
           <form action="/users/<%= user._id %>/images/<%= image._id %>?_method=DELETE" method="post">
             <button class="btn btn-danger delete-btn" aria-label="Delete image"><i class="bi bi-trash"></i></button>
           </form>
